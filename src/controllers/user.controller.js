@@ -20,12 +20,19 @@ module.exports.getUsersWithPostCount = async (req, res) => {
         paginationObject['pagingCounter'] = currentPage;
         let users_details = await User.find({}, { __v: 0 }).skip(page * 10).limit(limit);
         let users_list = [];
+        let posts = await Post.aggregate([
+            { $group: { _id: '$userId', count: { $sum: 1 } } },
+        ])
         for (let user of users_details) {
-            let post = await Post.countDocuments({ userId: user._id });
+            let post = posts.filter((element) => {
+                if (element._id.toString() === user._id.toString()) {
+                    return element;
+                }
+            })
             users_list.push({
                 id: user._id.toString(),
                 name: user.name,
-                posts: post
+                posts: post.length ? post[0].count : 0
             });
 
         }
